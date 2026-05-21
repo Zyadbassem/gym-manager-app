@@ -7,7 +7,10 @@ import {
   integer,
 } from "drizzle-orm/pg-core";
 
-const membershipEnum = pgEnum("membership_status", ["expired", "valid"]);
+export const membershipEnum = pgEnum("membership_status_enum", [
+  "expired",
+  "valid",
+]);
 
 export const adminsTable = pgTable("admins", {
   id: uuid().primaryKey().defaultRandom(),
@@ -36,7 +39,7 @@ export const traineesTable = pgTable("trainees", {
   membershipStatus: membershipEnum("membership_status").$default(
     () => "expired"
   ),
-  membershipExpiryDate: timestamp("memebership_expiry_Date").defaultNow(),
+  membershipExpiryDate: timestamp("memebership_expiry_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" })
     .defaultNow()
