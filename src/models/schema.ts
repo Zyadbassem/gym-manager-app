@@ -39,7 +39,7 @@ export const traineesTable = pgTable("trainees", {
   membershipStatus: membershipEnum("membership_status").$default(
     () => "expired"
   ),
-  membershipExpiryDate: timestamp("memebership_expiry_date").defaultNow(),
+  membershipExpiryDate: timestamp("membership_expiry_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" })
     .defaultNow()
