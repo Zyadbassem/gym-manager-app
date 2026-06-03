@@ -6,8 +6,7 @@ import bcrypt from "bcryptjs";
 import { AppError } from "../utils/errorHelper.js";
 import jwt from "jsonwebtoken";
 import { catchAsync } from "../utils/catchAsync.js";
-
-const JWT_SECRET = process.env.JWT_SECRET || "ffhfhfh";
+import { JWT_SECRET } from "../utils/secrets.js";
 
 export const adminLoginController = catchAsync(
   async (req: express.Request, res: express.Response, _: NextFunction) => {
