@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import authRouter from "./src/routes/authRoutes.js";
 import helmet from "helmet";
+import { traineeRouter } from "./src/routes/traineeRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -25,7 +26,7 @@ app.listen(port, () => {
 // Auth Router
 
 app.use("/api/auth", authRouter);
-//app.use()
+app.use("/api/trainee", traineeRouter);
 
 // Handling errors
 app.use((err: any, _: Request, res: Response, __: NextFunction) => {

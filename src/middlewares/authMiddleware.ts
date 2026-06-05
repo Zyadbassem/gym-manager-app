@@ -14,6 +14,7 @@ declare global {
 
 const getDecodedToken = (req: Request): JwtPayload => {
   const token = req.cookies?.token;
+
   if (!token) {
     throw new AppError("You are not logged in.", 401);
   }
@@ -34,6 +35,7 @@ export const requireAdmin = (req: Request, _: Response, next: NextFunction) => {
     }
 
     req.adminId = decoded.adminId;
+
     next();
   } catch (error) {
     next(error);
