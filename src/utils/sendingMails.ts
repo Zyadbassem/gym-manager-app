@@ -1,10 +1,10 @@
 import nodemailer from "nodemailer";
-
+import { EMAIL, PASS } from "./secrets.js";
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "zyadbassem9090@gmail.com",
-    pass: "seku eknf hatr qgdm",
+    user: EMAIL,
+    pass: PASS,
   },
 });
 

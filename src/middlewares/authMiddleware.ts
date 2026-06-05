@@ -14,7 +14,6 @@ declare global {
 
 const getDecodedToken = (req: Request): JwtPayload => {
   const token = req.cookies?.token;
-
   if (!token) {
     throw new AppError("You are not logged in.", 401);
   }
