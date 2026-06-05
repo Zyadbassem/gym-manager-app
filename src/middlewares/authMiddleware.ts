@@ -1,45 +1,60 @@
 import type { Request, Response, NextFunction } from "express";
 import { JWT_SECRET } from "../utils/secrets.js";
-import jwt, {type JwtPayload} from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 import { AppError } from "../utils/errorHelper.js";
 
 declare global {
   namespace Express {
     interface Request {
       adminId?: string;
+      traineeId?: string;
     }
   }
 }
 
-export const authMiddleware = (
+const getDecodedToken = (req: Request): JwtPayload => {
+  const token = req.cookies?.token;
+  if (!token) {
+    throw new AppError("You are not logged in.", 401);
+  }
+
+  try {
+    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  } catch (error) {
+    throw new AppError("Invalid or expired token. Please log in again.", 401);
+  }
+};
+
+export const requireAdmin = (req: Request, _: Response, next: NextFunction) => {
+  try {
+    const decoded = getDecodedToken(req);
+
+    if (!decoded.adminId) {
+      return next(new AppError("Access denied. Admins only.", 403));
+    }
+
+    req.adminId = decoded.adminId;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const requireTrainee = (
   req: Request,
   _: Response,
   next: NextFunction
 ) => {
   try {
-    const token = req.cookies?.token;
-    if (!token) {
-      return next(
-        new AppError("You are not logged in. Please log in to get access.", 401)
-      );
+    const decoded = getDecodedToken(req);
+
+    if (!decoded.traineeId) {
+      return next(new AppError("Access denied. Trainees only.", 403));
     }
 
-    // 3. Verify the token (this will throw an error to the catch block if expired)
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-
-    if (!decoded || !decoded.adminId) {
-      return next(new AppError("Token is invalid. Please log in again.", 401));
-    }
-
-    // 4. Attach the adminId to the request so controllers can use it
-    req.adminId = decoded.adminId;
-
-    // 5. Move to the next function (the controller)
+    req.traineeId = decoded.traineeId;
     next();
   } catch (error) {
-    // Catch JWT expiration or tampering errors safely
-    return next(
-      new AppError("Invalid or expired token. Please log in again.", 401)
-    );
+    next(error);
   }
 };

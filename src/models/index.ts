@@ -2,6 +2,8 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
+import bcrypt from "bcryptjs";
+import { traineesTable } from "./schema.js";
 
 config({ path: ".env" }); // or .env.local
 
@@ -23,3 +25,19 @@ export const db = drizzle({ client: sql });
 // };
 
 // await seeding();
+
+// seeding trainees
+// const seeding = async () => {
+//   const traineeData = {
+//     name: "Basant Khaled",
+//     email: "BasantKhaled@gmail.com",
+//     phoneNumber: "+201055594811",
+//     hashedPassword: bcrypt.hashSync("zyad9090_+||", 10),
+//   };
+
+//   await db.insert(traineesTable).values(traineeData);
+
+//   console.log("Inserted....");
+// };
+
+// seeding();
