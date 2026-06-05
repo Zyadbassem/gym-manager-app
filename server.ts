@@ -3,12 +3,14 @@ import type { Request, Response, NextFunction } from "express";
 import authRouter from "./src/routes/authRoutes.js";
 import helmet from "helmet";
 import { traineeRouter } from "./src/routes/traineeRoutes.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 const port = 3000;
 
 // Secure the app by setting headers with helmet;
 app.use(helmet());
+app.use(cookieParser());
 
 // To be able to use Json
 app.use(express.json({ limit: "10kb" }));

@@ -16,7 +16,7 @@ export const sendEmail = async (
 ) => {
   const mailOptions = {
     from: '"Gym Manager" <zyadbassem9090@gmail.com>',
-    to: "zayadbassem9090@gmail.com",
+    to: email,
     subject,
     text,
     html: `<table width="100%" cellpadding="10" cellspacing="0" style="max-width: 400px; border-collapse: collapse; font-family: Arial, sans-serif; border: 1px solid #dddddd;">
