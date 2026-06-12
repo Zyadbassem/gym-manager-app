@@ -15,7 +15,7 @@ export const sendEmail = async (
   password: string
 ) => {
   const mailOptions = {
-    from: '"Gym Manager" <zyadbassem9090@gmail.com>',
+    from: `"Gym Manager" <${EMAIL}>`,
     to: email,
     subject,
     text,
