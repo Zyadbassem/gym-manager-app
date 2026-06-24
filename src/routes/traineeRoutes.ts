@@ -3,6 +3,7 @@ import { requireAdmin, requireTrainee } from "../middlewares/authMiddleware.js";
 import {
   checkIn,
   createTrainee,
+  deleteTrainee,
   generateQr,
   getTrainees,
   renewMembership,
@@ -15,4 +16,4 @@ traineeRouter.post("/checkin", requireAdmin, checkIn);
 traineeRouter.put("/membership", requireAdmin, renewMembership);
 traineeRouter.get("/", requireAdmin, getTrainees);
 traineeRouter.get("/:traineeId", requireAdmin, getTrainees);
-traineeRouter.delete("/:traineeId", requireAdmin);
+traineeRouter.delete("/:traineeId", requireAdmin, deleteTrainee);
