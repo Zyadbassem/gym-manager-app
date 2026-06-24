@@ -8,6 +8,7 @@ declare global {
     interface Request {
       adminId?: string;
       traineeId?: string;
+      staffId?: string;
     }
   }
 }
@@ -34,6 +35,22 @@ export const requireAdmin = (req: Request, _: Response, next: NextFunction) => {
     }
 
     req.adminId = decoded.adminId;
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const requireStaff = (req: Request, _: Response, next: NextFunction) => {
+  try {
+    const decoded = getDecodedToken(req);
+
+    if (!decoded.staffId) {
+      return next(new AppError("Access denied. Owners/Staff only", 403));
+    }
+
+    req.staffId = decoded.staffId;
 
     next();
   } catch (error) {
