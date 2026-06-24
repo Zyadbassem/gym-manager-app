@@ -177,48 +177,85 @@ export const renewMembership = catchAsync(
   }
 );
 
-export const getTrainees = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.traineeId || "All";
-  if (id === "All") {
-    const allTrainees = await db
-      .select({
-        gymId: traineesTable.traineeId,
-        id: traineesTable.id,
-        name: traineesTable.name,
-        number: traineesTable.phoneNumber,
-        email: traineesTable.email,
-        membershipExpiryDate: traineesTable.membershipExpiryDate,
-        membershipStatus: traineesTable.membershipStatus,
-      })
-      .from(traineesTable);
+export const getTrainees = catchAsync(
+  async (req: express.Request, res: express.Response) => {
+    const paramId = req.params.traineeId as string;
+    if (!paramId || paramId === "All") {
+      const allTrainees = await db
+        .select({
+          gymId: traineesTable.traineeId,
+          id: traineesTable.id,
+          name: traineesTable.name,
+          number: traineesTable.phoneNumber,
+          email: traineesTable.email,
+          membershipExpiryDate: traineesTable.membershipExpiryDate,
+          membershipStatus: traineesTable.membershipStatus,
+        })
+        .from(traineesTable);
 
-    allTrainees.forEach(async (trainee) => {
-      if (
-        !trainee.membershipExpiryDate ||
-        trainee.membershipStatus === "expired" ||
-        new Date() > trainee.membershipExpiryDate
-      ) {
-        await db
-          .update(traineesTable)
-          .set({ membershipStatus: "expired" })
-          .where(eq(traineesTable.id, trainee.id));
+      // 2. Fixed the Async Loop Trap using for...of
+      for (const trainee of allTrainees) {
+        if (
+          !trainee.membershipExpiryDate ||
+          trainee.membershipStatus === "expired" ||
+          new Date() > trainee.membershipExpiryDate
+        ) {
+          // Update the object in memory so the frontend sees the change instantly
+          trainee.membershipStatus = "expired";
+          await db
+            .update(traineesTable)
+            .set({ membershipStatus: "expired" })
+            .where(eq(traineesTable.id, trainee.id));
+        }
       }
-    });
-    res.status(200).json({ message: "Got All Trainees", allTrainees });
-  } else if (typeof id === "number") {
-    const trainee = await db
-      .select({
-        gymId: traineesTable.traineeId,
-        id: traineesTable.id,
-        name: traineesTable.name,
-        number: traineesTable.phoneNumber,
-        email: traineesTable.email,
-        membershipExpiryDate: traineesTable.membershipExpiryDate,
-        membershipStatus: traineesTable.membershipStatus,
-      })
-      .from(traineesTable)
-      .where(eq(traineesTable.traineeId, id));
-    if (!trainee) throw new AppError("Trainee doesn't exist", 404);
-    res.status(200).json({ message: "Got All Trainees", trainee });
+      res.status(200).json({ message: "Got All Trainees", allTrainees });
+      return;
+    }
+
+    const gymIdNumber = parseInt(paramId, 10);
+    if (!isNaN(gymIdNumber)) {
+      const [trainee] = await db
+        .select({
+          gymId: traineesTable.traineeId,
+          id: traineesTable.id,
+          name: traineesTable.name,
+          number: traineesTable.phoneNumber,
+          email: traineesTable.email,
+          membershipExpiryDate: traineesTable.membershipExpiryDate,
+          membershipStatus: traineesTable.membershipStatus,
+        })
+        .from(traineesTable)
+        .where(eq(traineesTable.traineeId, gymIdNumber))
+        .limit(1);
+      if (!trainee) {
+        throw new AppError("Trainee doesn't exist", 404);
+      }
+      res.status(200).json({ message: "Got Trainee", trainee });
+    } else {
+      throw new AppError("Invalid Trainee ID format", 400);
+    }
   }
+);
+
+export const deleteTrainee = catchAsync(async (req: Request, res: Response) => {
+  const traineeId = parseInt(req.params.traineeId as string);
+  if (isNaN(traineeId)) throw new AppError("Invalid Trainee ID format", 400);
+  const [trainee] = await db
+    .select()
+    .from(traineesTable)
+    .where(eq(traineesTable.traineeId, traineeId))
+    .limit(1);
+
+  if (!trainee) throw new AppError("No trainee exist with the same id", 404);
+  const deletedTrainees = await db
+    .delete(traineesTable)
+    .where(eq(traineesTable.traineeId, trainee.traineeId))
+    .returning();
+  if (deletedTrainees.length === 0)
+    throw new AppError("No trainee exists with this ID", 404);
+
+  res.status(200).json({
+    message: "Deleted Successfully",
+    deletedTrainee: deletedTrainees[0],
+  });
 });

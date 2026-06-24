@@ -15,3 +15,4 @@ traineeRouter.post("/checkin", requireAdmin, checkIn);
 traineeRouter.put("/membership", requireAdmin, renewMembership);
 traineeRouter.get("/", requireAdmin, getTrainees);
 traineeRouter.get("/:traineeId", requireAdmin, getTrainees);
+traineeRouter.delete("/:traineeId", requireAdmin);
