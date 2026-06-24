@@ -4,6 +4,10 @@ import authRouter from "./src/routes/authRoutes.js";
 import helmet from "helmet";
 import { traineeRouter } from "./src/routes/traineeRoutes.js";
 import cookieParser from "cookie-parser";
+import cron from "node-cron";
+import { db } from "./src/models/index.js";
+import { traineesTable } from "./src/models/schema.js";
+import { eq } from "drizzle-orm";
 
 const app = express();
 const port = 3000;
@@ -25,8 +29,26 @@ app.listen(port, () => {
   console.log(`Example app listening on http://localhost:${port}`);
 });
 
-// Auth Router
+// trainees membership updater
+cron.schedule("0 0 * * *", async () => {
+  const trainees = await db.select().from(traineesTable);
+  for (const trainee of trainees) {
+    if (
+      !trainee.membershipExpiryDate ||
+      trainee.membershipStatus === "expired" ||
+      new Date() > trainee.membershipExpiryDate
+    ) {
+      // Update the object in memory so the frontend sees the change instantly
+      trainee.membershipStatus = "expired";
+      await db
+        .update(traineesTable)
+        .set({ membershipStatus: "expired" })
+        .where(eq(traineesTable.id, trainee.id));
+    }
+  }
+});
 
+// Auth Router
 app.use("/api/auth", authRouter);
 app.use("/api/trainee", traineeRouter);
 

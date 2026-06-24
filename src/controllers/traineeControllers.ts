@@ -192,22 +192,6 @@ export const getTrainees = catchAsync(
           membershipStatus: traineesTable.membershipStatus,
         })
         .from(traineesTable);
-
-      // 2. Fixed the Async Loop Trap using for...of
-      for (const trainee of allTrainees) {
-        if (
-          !trainee.membershipExpiryDate ||
-          trainee.membershipStatus === "expired" ||
-          new Date() > trainee.membershipExpiryDate
-        ) {
-          // Update the object in memory so the frontend sees the change instantly
-          trainee.membershipStatus = "expired";
-          await db
-            .update(traineesTable)
-            .set({ membershipStatus: "expired" })
-            .where(eq(traineesTable.id, trainee.id));
-        }
-      }
       res.status(200).json({ message: "Got All Trainees", allTrainees });
       return;
     }
