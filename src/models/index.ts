@@ -2,8 +2,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { config } from "dotenv";
-import bcrypt from "bcryptjs";
-import { traineesTable } from "./schema.js";
 
 config({ path: ".env" }); // or .env.local
 

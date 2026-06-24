@@ -1,4 +1,5 @@
 import express from "express";
+import type { Request, Response } from "express";
 import { catchAsync } from "../utils/catchAsync.js";
 import { AppError } from "../utils/errorHelper.js";
 import { db } from "../models/index.js";
@@ -175,3 +176,49 @@ export const renewMembership = catchAsync(
     res.status(200).json({ message: "Renewed Membership", updatedDate });
   }
 );
+
+export const getTrainees = catchAsync(async (req: Request, res: Response) => {
+  const id = req.params.traineeId || "All";
+  if (id === "All") {
+    const allTrainees = await db
+      .select({
+        gymId: traineesTable.traineeId,
+        id: traineesTable.id,
+        name: traineesTable.name,
+        number: traineesTable.phoneNumber,
+        email: traineesTable.email,
+        membershipExpiryDate: traineesTable.membershipExpiryDate,
+        membershipStatus: traineesTable.membershipStatus,
+      })
+      .from(traineesTable);
+
+    allTrainees.forEach(async (trainee) => {
+      if (
+        !trainee.membershipExpiryDate ||
+        trainee.membershipStatus === "expired" ||
+        new Date() > trainee.membershipExpiryDate
+      ) {
+        await db
+          .update(traineesTable)
+          .set({ membershipStatus: "expired" })
+          .where(eq(traineesTable.id, trainee.id));
+      }
+    });
+    res.status(200).json({ message: "Got All Trainees", allTrainees });
+  } else if (typeof id === "number") {
+    const trainee = await db
+      .select({
+        gymId: traineesTable.traineeId,
+        id: traineesTable.id,
+        name: traineesTable.name,
+        number: traineesTable.phoneNumber,
+        email: traineesTable.email,
+        membershipExpiryDate: traineesTable.membershipExpiryDate,
+        membershipStatus: traineesTable.membershipStatus,
+      })
+      .from(traineesTable)
+      .where(eq(traineesTable.traineeId, id));
+    if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+    res.status(200).json({ message: "Got All Trainees", trainee });
+  }
+});
