@@ -3,8 +3,8 @@ import type { Request, Response } from "express";
 import { catchAsync } from "../utils/catchAsync.js";
 import { AppError } from "../utils/errorHelper.js";
 import { db } from "../models/index.js";
-import { traineesTable } from "../models/schema.js";
-import { eq, or } from "drizzle-orm";
+import { gymsTable, staffTable, traineesTable } from "../models/schema.js";
+import { and, eq, or } from "drizzle-orm";
 import { generatePassword } from "../utils/passwordGenerator.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../utils/sendingMails.js";
@@ -12,8 +12,23 @@ import { qrChecker } from "../utils/qrHelpers.js";
 import QRCode from "qrcode";
 import crypto from "crypto";
 
+/**
+ * TRAINEE
+ */
 export const createTrainee = catchAsync(
   async (req: express.Request, res: express.Response) => {
+    const staffId = req.staffId;
+    if (!staffId) throw new AppError("Please sign in", 400);
+
+    const [staff] = await db
+      .select()
+      .from(staffTable)
+      .where(eq(staffTable.id, staffId))
+      .limit(1);
+    if (!staff) throw new AppError("Owner doesn't exist", 404);
+    const gymId = staff.gymId;
+    if (gymId === null) throw new AppError("There is no gym", 404);
+
     const { name, email, number } = req.body;
     if (!name || !email || !number) {
       throw new AppError("Please fill all the inputs", 401);
@@ -40,6 +55,7 @@ export const createTrainee = catchAsync(
       email,
       phoneNumber: number,
       hashedPassword,
+      gymId,
     };
     const [trainee] = await db
       .insert(traineesTable)
@@ -51,13 +67,112 @@ export const createTrainee = catchAsync(
       email,
       generatedPassword
     );
-    res
-      .status(201)
-      .json({
-        message: "Created New User",
-        email: trainee?.email,
-        number: trainee?.phoneNumber,
+    res.status(201).json({
+      message: "Created New User",
+      email: trainee?.email,
+      number: trainee?.phoneNumber,
+      gymId: gymId,
+    });
+  }
+);
+
+export const getMeTrainee = catchAsync(
+  async (req: express.Request, res: express.Response) => {
+    const traineeId = req.traineeId;
+    if (!traineeId) throw new AppError("Please sign in first", 404);
+    const [trainee] = await db
+      .select({
+        traineeId: traineesTable.traineeId,
+        email: traineesTable.email,
+        number: traineesTable.phoneNumber,
+        gym: gymsTable.gymName,
+        membership: traineesTable.membershipStatus,
+        memberShipExpiryDate: traineesTable.membershipExpiryDate,
+        lastCheckIn: traineesTable.lastCheckIn,
+      })
+      .from(traineesTable)
+      .where(eq(traineesTable.id, traineeId))
+      .leftJoin(gymsTable, eq(traineesTable.gymId, gymsTable.id));
+    if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+    res.status(200).json({ message: "Got the trainee", trainee });
+  }
+);
+
+export const updateMeTrainee = catchAsync(
+  async (req: express.Request, res: express.Response) => {
+    const { name, email, number, password } = req.body;
+    const traineeId = req.traineeId;
+    if (!traineeId) throw new AppError("Please sign in first", 404);
+    const [trainee] = await db
+      .select({
+        id: traineesTable.id,
+        traineeId: traineesTable.traineeId,
+        name: traineesTable.name,
+        password: traineesTable.hashedPassword,
+        email: traineesTable.email,
+        number: traineesTable.phoneNumber,
+        gym: gymsTable.gymName,
+        membership: traineesTable.membershipStatus,
+        memberShipExpiryDate: traineesTable.membershipExpiryDate,
+        lastCheckIn: traineesTable.lastCheckIn,
+      })
+      .from(traineesTable)
+      .where(eq(traineesTable.id, traineeId))
+      .leftJoin(gymsTable, eq(traineesTable.gymId, gymsTable.id));
+    if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+    const updatedData = {
+      name: name || trainee.name,
+      email: email || trainee.email,
+      number: number || trainee.number,
+      password: trainee.password,
+    };
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updatedData.password = hashedPassword;
+    }
+    const [updatedTrainee] = await db
+      .update(traineesTable)
+      .set(updatedData)
+      .where(eq(traineesTable.id, trainee.id))
+      .returning({
+        id: traineesTable.id,
+        traineeId: traineesTable.traineeId,
+        name: traineesTable.name,
+        email: traineesTable.email,
+        number: traineesTable.phoneNumber,
+        membership: traineesTable.membershipStatus,
+        memberShipExpiryDate: traineesTable.membershipExpiryDate,
+        lastCheckIn: traineesTable.lastCheckIn,
       });
+
+    res.status(200).json({ message: "updated successfully", updatedTrainee });
+  }
+);
+
+export const deleteMeTrainee = catchAsync(
+  async (req: express.Request, res: express.Response) => {
+    const traineeId = req.traineeId;
+    if (!traineeId) throw new AppError("Please sign in", 404);
+
+    const [deletedTrainee] = await db
+      .delete(traineesTable)
+      .where(eq(traineesTable.id, traineeId))
+      .returning({
+        id: traineesTable.id,
+        traineeId: traineesTable.traineeId,
+        name: traineesTable.name,
+        email: traineesTable.email,
+        number: traineesTable.phoneNumber,
+        membership: traineesTable.membershipStatus,
+        memberShipExpiryDate: traineesTable.membershipExpiryDate,
+        lastCheckIn: traineesTable.lastCheckIn,
+      });
+
+    if (!deletedTrainee)
+      throw new AppError("No trainee exist with this id", 404);
+    res
+      .status(200)
+      .json({ message: "Deleted the trainee successfully", deletedTrainee });
   }
 );
 
@@ -111,6 +226,71 @@ export const generateQr = catchAsync(
   }
 );
 
+/**
+ * STUFF
+ */
+
+export const getMyGymTrainees = catchAsync(
+  async (req: Request, res: Response) => {
+    const staffId = req.staffId;
+    if (!staffId) throw new AppError("Please sign in", 404);
+    const [staff] = await db
+      .select()
+      .from(staffTable)
+      .where(eq(staffTable.id, staffId))
+      .leftJoin(gymsTable, eq(gymsTable.id, staffTable.gymId));
+
+    if (!staff || !staff.gyms)
+      throw new AppError("You must create a gym first", 404);
+
+    const traineeId = parseInt((req.params.traineeId as string) || "1");
+    if (isNaN(traineeId)) throw new AppError("Invalid id", 400);
+    if (traineeId === 1) {
+      const trainees = await db
+        .select({
+          gymId: traineesTable.gymId,
+          traineeId: traineesTable.traineeId,
+          id: traineesTable.id,
+          name: traineesTable.name,
+          number: traineesTable.phoneNumber,
+          email: traineesTable.email,
+          membershipExpiryDate: traineesTable.membershipExpiryDate,
+          membershipStatus: traineesTable.membershipStatus,
+        })
+        .from(traineesTable)
+        .where(eq(traineesTable.gymId, staff.gyms.id));
+
+      res.status(200).json({ message: "Got the trainees", trainees });
+    } else {
+      const [trainee] = await db
+        .select({
+          gymId: traineesTable.gymId,
+          traineeId: traineesTable.traineeId,
+          id: traineesTable.id,
+          name: traineesTable.name,
+          number: traineesTable.phoneNumber,
+          email: traineesTable.email,
+          membershipExpiryDate: traineesTable.membershipExpiryDate,
+          membershipStatus: traineesTable.membershipStatus,
+        })
+        .from(traineesTable)
+        .where(
+          and(
+            eq(traineesTable.gymId, staff.gyms.id),
+            eq(traineesTable.traineeId, traineeId)
+          )
+        )
+        .limit(1);
+
+      if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+      res.status(200).json({ message: "Got the trainee", trainee });
+    }
+  }
+);
+
+/**
+ * ADMIN
+ */
 export const checkIn = catchAsync(
   async (req: express.Request, res: express.Response) => {
     const { payload } = req.body;
@@ -192,7 +372,8 @@ export const getTrainees = catchAsync(
     if (!paramId || paramId === "All") {
       const allTrainees = await db
         .select({
-          gymId: traineesTable.traineeId,
+          gymId: traineesTable.gymId,
+          traineeId: traineesTable.traineeId,
           id: traineesTable.id,
           name: traineesTable.name,
           number: traineesTable.phoneNumber,
@@ -209,7 +390,8 @@ export const getTrainees = catchAsync(
     if (!isNaN(gymIdNumber)) {
       const [trainee] = await db
         .select({
-          gymId: traineesTable.traineeId,
+          gymId: traineesTable.gymId,
+          traineeId: traineesTable.traineeId,
           id: traineesTable.id,
           name: traineesTable.name,
           number: traineesTable.phoneNumber,

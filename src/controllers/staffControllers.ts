@@ -92,5 +92,5 @@ export const createStaff = catchAsync(async (req: Request, res: Response) => {
     role: "owner" | "receptionist";
   } = { name, email, phoneNumber, hashedPassword, role: "owner" };
   const [staff] = await db.insert(staffTable).values(staffData).returning();
-  res.status(201).json({ message: "Created new staff", staffData });
+  res.status(201).json({ message: "Created new staff", staff });
 });
