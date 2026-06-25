@@ -41,14 +41,23 @@ export const createTrainee = catchAsync(
       phoneNumber: number,
       hashedPassword,
     };
-    await db.insert(traineesTable).values(traineeData);
+    const [trainee] = await db
+      .insert(traineesTable)
+      .values(traineeData)
+      .returning();
     await sendEmail(
       "YOUR GYM CREDINTIALS",
       "Here are your credintials",
       email,
       generatedPassword
     );
-    res.status(201).json({ message: "Created New User" });
+    res
+      .status(201)
+      .json({
+        message: "Created New User",
+        email: trainee?.email,
+        number: trainee?.phoneNumber,
+      });
   }
 );
 

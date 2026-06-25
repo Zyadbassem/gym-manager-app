@@ -8,6 +8,7 @@ import cron from "node-cron";
 import { db } from "./src/models/index.js";
 import { traineesTable } from "./src/models/schema.js";
 import { eq } from "drizzle-orm";
+import staffRouter from "./src/routes/staffRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -51,6 +52,7 @@ cron.schedule("0 0 * * *", async () => {
 // Auth Router
 app.use("/api/auth", authRouter);
 app.use("/api/trainee", traineeRouter);
+app.use("/api/staff", staffRouter);
 
 // Handling errors
 app.use((err: any, _: Request, res: Response, __: NextFunction) => {

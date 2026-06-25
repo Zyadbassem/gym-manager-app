@@ -113,8 +113,8 @@ export const staffLoginController = catchAsync(
       .from(staffTable)
       .where(
         or(
-          eq(traineesTable.phoneNumber, emailOrNumber),
-          eq(traineesTable.email, emailOrNumber)
+          eq(staffTable.phoneNumber, emailOrNumber),
+          eq(staffTable.email, emailOrNumber)
         )
       )
       .limit(1);
@@ -130,7 +130,7 @@ export const staffLoginController = catchAsync(
     }
 
     const token = jwt.sign(
-      { staffId: staff.id, role: staff.role },
+      { staffId: staff.id, role: staff.role, gym: staff.gymId },
       JWT_SECRET,
       {
         expiresIn: "3d",
