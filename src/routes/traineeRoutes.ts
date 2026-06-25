@@ -8,6 +8,7 @@ import {
   checkIn,
   createTrainee,
   deleteMeTrainee,
+  deleteMyGymTrainee,
   deleteTrainee,
   generateQr,
   getMeTrainee,
@@ -15,6 +16,7 @@ import {
   getTrainees,
   renewMembership,
   updateMeTrainee,
+  updateMyGymTrainee,
 } from "../controllers/traineeControllers.js";
 export const traineeRouter = Router();
 
@@ -30,10 +32,9 @@ traineeRouter.put("/membership", requireAdmin, renewMembership);
 
 traineeRouter.get("/staff/me", requireStaff, getMyGymTrainees);
 traineeRouter.get("/staff/me/:traineeId", requireStaff, getMyGymTrainees);
-/** To Do "Get only the owners' gym trainees" */
-traineeRouter.delete("/stuff/me/:traineeId", requireStaff);
-traineeRouter.put("/stuff/me/:traineeId", requireStaff);
-/** DonestaffRouter.get("/:staffId", requireAdmin, getStaff); */
+traineeRouter.delete("/stuff/me/:traineeId", requireStaff, deleteMyGymTrainee);
+traineeRouter.put("/stuff/me/:traineeId", requireStaff, updateMyGymTrainee);
+
 traineeRouter.get("/", requireAdmin, getTrainees);
 traineeRouter.get("/:traineeId", requireAdmin, getTrainees);
 traineeRouter.delete("/:traineeId", requireAdmin, deleteTrainee);

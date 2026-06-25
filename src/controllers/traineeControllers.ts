@@ -288,6 +288,93 @@ export const getMyGymTrainees = catchAsync(
   }
 );
 
+export const deleteMyGymTrainee = catchAsync(
+  async (req: Request, res: Response) => {
+    const staffId = req.staffId;
+    if (!staffId) throw new AppError("Please sign in", 404);
+    const [staff] = await db
+      .select()
+      .from(staffTable)
+      .where(eq(staffTable.id, staffId))
+      .leftJoin(gymsTable, eq(gymsTable.id, staffTable.gymId));
+
+    if (!staff || !staff.gyms)
+      throw new AppError("You must create a gym first", 404);
+
+    const traineeId = parseInt(req.params.traineeId as string);
+    if (isNaN(traineeId)) throw new AppError("Invalid ID", 400);
+    const [trainee] = await db
+      .delete(traineesTable)
+      .where(eq(traineesTable.traineeId, traineeId))
+      .returning();
+    if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+    res.status(200).json({ message: "Successfully deleted", trainee });
+  }
+);
+
+export const updateMyGymTrainee = catchAsync(
+  async (req: Request, res: Response) => {
+    const staffId = req.staffId;
+    if (!staffId) throw new AppError("Please sign in", 404);
+    const [staff] = await db
+      .select()
+      .from(staffTable)
+      .where(eq(staffTable.id, staffId))
+      .leftJoin(gymsTable, eq(gymsTable.id, staffTable.gymId));
+
+    if (!staff || !staff.gyms)
+      throw new AppError("You must create a gym first", 404);
+    const { name, email, number, password } = req.body;
+    const traineeId = parseInt(req.params.traineeId as string);
+    if (!traineeId || isNaN(traineeId))
+      throw new AppError("Please sign in first", 404);
+
+    const [trainee] = await db
+      .select({
+        id: traineesTable.id,
+        traineeId: traineesTable.traineeId,
+        name: traineesTable.name,
+        password: traineesTable.hashedPassword,
+        email: traineesTable.email,
+        number: traineesTable.phoneNumber,
+        gym: gymsTable.gymName,
+        gymId: traineesTable.gymId,
+        membership: traineesTable.membershipStatus,
+        memberShipExpiryDate: traineesTable.membershipExpiryDate,
+        lastCheckIn: traineesTable.lastCheckIn,
+      })
+      .from(traineesTable)
+      .where(
+        and(
+          eq(traineesTable.traineeId, traineeId),
+          eq(traineesTable.gymId, staff.gyms.id)
+        )
+      )
+      .limit(1)
+      .leftJoin(gymsTable, eq(gymsTable.id, traineesTable.gymId));
+
+    if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+
+    const updatedData = {
+      name: name || trainee.name,
+      email: email || trainee.email,
+      number: number || trainee.number,
+      password: trainee.password,
+    };
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updatedData.password = hashedPassword;
+    }
+
+    const [updated] = await db
+      .update(traineesTable)
+      .set(updatedData)
+      .where(eq(traineesTable.traineeId, trainee.traineeId))
+      .returning();
+    res.status(200).json({ message: "Updated the trainee", updated });
+  }
+);
+
 /**
  * ADMIN
  */
