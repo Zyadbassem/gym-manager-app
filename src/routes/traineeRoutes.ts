@@ -32,8 +32,8 @@ traineeRouter.put("/membership", requireAdmin, renewMembership);
 
 traineeRouter.get("/staff/me", requireStaff, getMyGymTrainees);
 traineeRouter.get("/staff/me/:traineeId", requireStaff, getMyGymTrainees);
-traineeRouter.delete("/stuff/me/:traineeId", requireStaff, deleteMyGymTrainee);
-traineeRouter.put("/stuff/me/:traineeId", requireStaff, updateMyGymTrainee);
+traineeRouter.delete("/staff/me/:traineeId", requireStaff, deleteMyGymTrainee);
+traineeRouter.put("/staff/me/:traineeId", requireStaff, updateMyGymTrainee);
 
 traineeRouter.get("/", requireAdmin, getTrainees);
 traineeRouter.get("/:traineeId", requireAdmin, getTrainees);

@@ -4,20 +4,22 @@ import {
   getStaff,
   getMyStaff,
   createStaff,
+  updateMyStaff,
+  deleteMyStaff,
+  updateStaff,
+  deleteStaff,
 } from "../controllers/staffControllers.js";
 const staffRouter = express.Router();
 
 staffRouter.post("/", createStaff);
+
 staffRouter.get("/me", requireStaff, getMyStaff);
-/**TO DO */
-staffRouter.put("/me", requireStaff);
-staffRouter.delete("/me", requireStaff);
-/** DONE */
+staffRouter.put("/me", requireStaff, updateMyStaff);
+staffRouter.delete("/me", requireStaff, deleteMyStaff);
+
 staffRouter.get("/", requireAdmin, getStaff);
 staffRouter.get("/:staffId", requireAdmin, getStaff);
-/** TO DO */
-staffRouter.put("/:staffId", requireAdmin);
-staffRouter.delete("/:staffId", requireAdmin);
-/** DONE */
+staffRouter.put("/:staffId", requireAdmin, updateStaff);
+staffRouter.delete("/:staffId", requireAdmin, deleteStaff);
 
 export default staffRouter;

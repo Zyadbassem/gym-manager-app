@@ -243,9 +243,8 @@ export const getMyGymTrainees = catchAsync(
     if (!staff || !staff.gyms)
       throw new AppError("You must create a gym first", 404);
 
-    const traineeId = parseInt((req.params.traineeId as string) || "1");
-    if (isNaN(traineeId)) throw new AppError("Invalid id", 400);
-    if (traineeId === 1) {
+    const traineeId = req.params.traineeId;
+    if (traineeId === undefined) {
       const trainees = await db
         .select({
           gymId: traineesTable.gymId,
@@ -262,6 +261,7 @@ export const getMyGymTrainees = catchAsync(
 
       res.status(200).json({ message: "Got the trainees", trainees });
     } else {
+      const numberedTraineeId = parseInt(req.params.traineeId as string);
       const [trainee] = await db
         .select({
           gymId: traineesTable.gymId,
@@ -277,7 +277,7 @@ export const getMyGymTrainees = catchAsync(
         .where(
           and(
             eq(traineesTable.gymId, staff.gyms.id),
-            eq(traineesTable.traineeId, traineeId)
+            eq(traineesTable.traineeId, numberedTraineeId)
           )
         )
         .limit(1);
