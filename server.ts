@@ -9,6 +9,7 @@ import { db } from "./src/models/index.js";
 import { traineesTable } from "./src/models/schema.js";
 import { eq } from "drizzle-orm";
 import staffRouter from "./src/routes/staffRoutes.js";
+import gymRouter from "./src/routes/gymRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -53,6 +54,7 @@ cron.schedule("0 0 * * *", async () => {
 app.use("/api/auth", authRouter);
 app.use("/api/trainee", traineeRouter);
 app.use("/api/staff", staffRouter);
+app.use("/api/gym", gymRouter);
 
 // Handling errors
 app.use((err: any, _: Request, res: Response, __: NextFunction) => {
