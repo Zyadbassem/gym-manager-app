@@ -204,9 +204,12 @@ export const generateQr = catchAsync(
 
     if (!trainee.lastCheckIn || qrChecker(2, trainee.lastCheckIn.getTime())) {
       const secured = crypto.randomUUID();
+      const FIVE_MINUTES_IN_MS = 5 * 60 * 1000;
+      const futureDate = new Date(Date.now() + FIVE_MINUTES_IN_MS);
       const data = {
         traineeId,
         token: secured,
+        expiresAt: futureDate,
       };
       const stringfiedData = JSON.stringify(data);
       const generatedQr = await QRCode.toDataURL(stringfiedData);
@@ -295,7 +298,7 @@ export const deleteMyGymTrainee = catchAsync(
     const [staff] = await db
       .select()
       .from(staffTable)
-      .where(eq(staffTable.id, staffId))
+      .where(and(eq(staffTable.id, staffId)))
       .leftJoin(gymsTable, eq(gymsTable.id, staffTable.gymId));
 
     if (!staff || !staff.gyms)
@@ -305,7 +308,12 @@ export const deleteMyGymTrainee = catchAsync(
     if (isNaN(traineeId)) throw new AppError("Invalid ID", 400);
     const [trainee] = await db
       .delete(traineesTable)
-      .where(eq(traineesTable.traineeId, traineeId))
+      .where(
+        and(
+          eq(traineesTable.traineeId, traineeId),
+          eq(traineesTable.gymId, staff.gyms.id)
+        )
+      )
       .returning();
     if (!trainee) throw new AppError("Trainee doesn't exist", 404);
     res.status(200).json({ message: "Successfully deleted", trainee });
@@ -375,11 +383,16 @@ export const updateMyGymTrainee = catchAsync(
   }
 );
 
-/**
- * ADMIN
- */
 export const checkIn = catchAsync(
   async (req: express.Request, res: express.Response) => {
+    const staffId = req.staffId as string;
+    if (!staffId) throw new AppError("Invalid id", 404);
+    const [staff] = await db
+      .select({ gymId: staffTable.gymId })
+      .from(staffTable)
+      .where(eq(staffTable.id, staffId));
+    if (!staff || !staff.gymId)
+      throw new AppError("Please create a gym first", 404);
     const { payload } = req.body;
     const HOLDING_HOURS = 2;
     if (!payload || !payload.traineeId || !payload.token)
@@ -390,9 +403,13 @@ export const checkIn = catchAsync(
       .from(traineesTable)
       .where(eq(traineesTable.id, payload.traineeId));
     if (!trainee) throw new AppError("Trainee doesn't exist", 404);
+    if (trainee.gymId !== staff.gymId) throw new AppError("Wrong gym!", 400);
 
     if (payload.token !== trainee.lastQr)
       throw new AppError("Invalid Token", 403);
+
+    if (payload.token.expiresAt < Date.now())
+      throw new AppError("Token expired", 400);
 
     const currTime = Date.now();
     if (
@@ -427,6 +444,15 @@ export const checkIn = catchAsync(
 
 export const renewMembership = catchAsync(
   async (req: express.Request, res: express.Response) => {
+    const staffId = req.staffId as string;
+    if (!staffId) throw new AppError("Invalid id", 404);
+    const [staff] = await db
+      .select({ gymId: staffTable.gymId })
+      .from(staffTable)
+      .where(eq(staffTable.id, staffId));
+    if (!staff || !staff.gymId)
+      throw new AppError("Please create a gym first", 404);
+
     const { traineeId, numOfDays } = req.body;
     if (!traineeId || !numOfDays)
       throw new AppError("Please enter the missing fields", 400);
@@ -434,10 +460,11 @@ export const renewMembership = catchAsync(
     const [trainee] = await db
       .select()
       .from(traineesTable)
-      .where(eq(traineesTable.traineeId, traineeId))
+      .where(and(eq(traineesTable.traineeId, traineeId)))
       .limit(1);
 
     if (!trainee) throw new AppError("Please enter a valid trainee id", 400);
+    if (trainee.gymId !== staff.gymId) throw new AppError("Wrong gym!", 400);
     const currDate = new Date();
     const updatedDate =
       trainee.membershipExpiryDate && currDate < trainee.membershipExpiryDate
@@ -452,6 +479,10 @@ export const renewMembership = catchAsync(
     res.status(200).json({ message: "Renewed Membership", updatedDate });
   }
 );
+
+/**
+ * ADMIN
+ */
 
 export const getTrainees = catchAsync(
   async (req: express.Request, res: express.Response) => {

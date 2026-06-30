@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import cron from "node-cron";
 import { db } from "./src/models/index.js";
 import { traineesTable } from "./src/models/schema.js";
-import { eq } from "drizzle-orm";
+import { isNull, lt, or } from "drizzle-orm";
 import staffRouter from "./src/routes/staffRoutes.js";
 import gymRouter from "./src/routes/gymRoutes.js";
 
@@ -33,21 +33,15 @@ app.listen(port, () => {
 
 // trainees membership updater
 cron.schedule("0 0 * * *", async () => {
-  const trainees = await db.select().from(traineesTable);
-  for (const trainee of trainees) {
-    if (
-      !trainee.membershipExpiryDate ||
-      trainee.membershipStatus === "expired" ||
-      new Date() > trainee.membershipExpiryDate
-    ) {
-      // Update the object in memory so the frontend sees the change instantly
-      trainee.membershipStatus = "expired";
-      await db
-        .update(traineesTable)
-        .set({ membershipStatus: "expired" })
-        .where(eq(traineesTable.id, trainee.id));
-    }
-  }
+  await db
+    .update(traineesTable)
+    .set({ membershipStatus: "expired" })
+    .where(
+      or(
+        lt(traineesTable.membershipExpiryDate, new Date()),
+        isNull(traineesTable.membershipExpiryDate)
+      )
+    );
 });
 
 // Auth Router

@@ -79,7 +79,7 @@ export const traineeLoginController = catchAsync(
     const hashed = trainee.hashedPassword;
     const isPasswordValid = await bcrypt.compare(password, hashed);
     if (!isPasswordValid) {
-      throw new AppError("Invalid credentials", 400);
+      throw new AppError("Invalid credentials", 401);
     }
 
     const token = jwt.sign(
@@ -149,3 +149,8 @@ export const staffLoginController = catchAsync(
       .json({ status: "success", message: "Logged in successfully" });
   }
 );
+
+export const logoutController = (_: express.Request, res: express.Response) => {
+  res.clearCookie("token");
+  res.status(200).json({ message: "Logged out successfully" });
+};

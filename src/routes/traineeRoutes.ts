@@ -25,12 +25,11 @@ traineeRouter.post("/", requireStaff, createTrainee);
 traineeRouter.get("/me", requireTrainee, getMeTrainee);
 traineeRouter.put("/me", requireTrainee, updateMeTrainee);
 traineeRouter.delete("/me", requireTrainee, deleteMeTrainee);
-
 traineeRouter.get("/qr/new", requireTrainee, generateQr);
-traineeRouter.post("/checkin", requireAdmin, checkIn);
-traineeRouter.put("/membership", requireAdmin, renewMembership);
 
+traineeRouter.put("/membership", requireStaff, renewMembership);
 traineeRouter.get("/staff/me", requireStaff, getMyGymTrainees);
+traineeRouter.post("/checkin", requireStaff, checkIn);
 traineeRouter.get("/staff/me/:traineeId", requireStaff, getMyGymTrainees);
 traineeRouter.delete("/staff/me/:traineeId", requireStaff, deleteMyGymTrainee);
 traineeRouter.put("/staff/me/:traineeId", requireStaff, updateMyGymTrainee);

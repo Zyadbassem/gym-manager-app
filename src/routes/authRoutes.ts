@@ -3,6 +3,7 @@ import {
   adminLoginController,
   staffLoginController,
   traineeLoginController,
+  logoutController,
 } from "../controllers/authControllers.js";
 import { rateLimit } from "express-rate-limit";
 
@@ -15,5 +16,6 @@ const router = express.Router();
 router.post("/admin/login", loginLimiter, adminLoginController);
 router.post("/trainee/login", loginLimiter, traineeLoginController);
 router.post("/staff/login", loginLimiter, staffLoginController);
+router.post("/logout", logoutController);
 
 export default router;
